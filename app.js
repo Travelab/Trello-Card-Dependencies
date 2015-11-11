@@ -14,6 +14,8 @@ var TrelloInvisDepApp = function(){
 	this.w = 800;
 	this.h = 600;
 
+	this.transformer = new TrelloTransformer();
+
 	//Bad
 	cssClone = false;
 
@@ -80,12 +82,13 @@ TrelloInvisDepApp.prototype = function(){
 		return promise;
 	};
 
+
 	var updateDataFromTrello = function()
 	{
 		this.loadDataFromTrello().done(function(cardResult,listResult){
 			var cards = cardResult;
 			var lists = listResult;
-			var dataset = new TrelloTransformer().buildDependencyOrientatedDataSet(cards,lists);
+			var dataset = this.transformer.buildDependencyOrientatedDataSet(cards, lists);
 			this.invis.updateGraph(this.settings,dataset);
 		}.bind(this));
 	}
@@ -101,7 +104,7 @@ TrelloInvisDepApp.prototype = function(){
 			var cards = results[0];
 			var lists = results[1];
 
-			var dataset = new TrelloTransformer().buildDependencyOrientatedDataSet(cards,lists);
+			var dataset = this.transformer.buildDependencyOrientatedDataSet(cards, lists);
 
 			this.invis = new InVis();
 
@@ -165,35 +168,45 @@ TrelloInvisDepApp.prototype = function(){
 
 	var removeDependencyMouseDown = function removeDepMouseDown(e)
 	{
-			me = e.data;
+		var me = e.data;
 
-			if(me.dependency == null)
-			{
-				var dependency = getCardDataFromTarget(e.target);
-				var dependencies = new TrelloTransformer().getDependenciesForCard(dependency.shortLink,me.invis.data.nodes);
-				me.dependency = dependency;
+		if(me.dependency == null)
+		{
+		    var dependency = getCardDataFromTarget(e.target);
+		    if (dependency.neededFor.length + dependency.dependsOn.length <= 1) {
+		        if (dependency.neededFor.length == 1) {
+		            var link = dependency.neededFor[0];
+		            if (me.transformer.removeDependency(link.source, link.target)) {
+		                me.transformer.updateAllDirtyDescriptions();
+		                me.invis.restartEdges();
+		            }
+		        } else if (dependency.dependsOn.length == 1) {
+		            var link = dependency.dependsOn[0];
+		            if (me.transformer.removeDependency(link.source, link.target)) {
+		                me.transformer.updateAllDirtyDescriptions();
+		                me.invis.restartEdges();
+		            }
+		        }
+		        me.resetDependencyFlow();
+		        return;
+		    }
 
-				// If there's just one dependency then remove that
-				if(dependencies.length == 1)
-				{
-					var dependShortLink = dependencies[0].shortLink;
-					var dependent =  Enumerable.From(me.invis.data.nodes).Single(function(d){return d.shortLink == dependShortLink});
-					removeDependency(me.dependency,dependent);
-					me.resetDependencyFlow(true);
-					return;
-				}
+			me.dependency = dependency;
 
-				$('#dependant').text('Click on the dependent');
-				return;
-			}
+			$('#dependant').text('Click on the dependent');
+			return;
+		}
 
-			if(dependent == null)
-			{
-				var dependent = getCardDataFromTarget(e.target);
-				removeDependency(me.dependency,dependent);
-				me.resetDependencyFlow(true);
-				return;
-			}
+		if (me.dependent == null)
+		{
+		    me.dependent = getCardDataFromTarget(e.target);
+		    if (me.transformer.removeDependency(me.dependency, me.dependent)) {
+		        me.transformer.updateAllDirtyDescriptions();
+		        me.resetDependencyFlow();
+		        me.invis.restartEdges();
+		    }
+			return;
+		}
 	};
 
 	var removeDependencyClick = function(settings,dataset){
@@ -218,26 +231,29 @@ TrelloInvisDepApp.prototype = function(){
 	var addDependencyMouseDown = function dependencyMouseDown(e){
 
 		$('#removeDependencyButton').hide();
-		me = e.data;
+		var me = e.data;
 		if(me.dependency == null)
-				{
-					me.dependency = getCardDataFromTarget(e.target);
-					$('#dependency').text(dependency.name);
-					$('#dependant').text('click on the dependent');
-				}
-				else if(me.dependent === null)
-				{
-					me.dependent = getCardDataFromTarget(e.target);
-					$('#dependant').text(me.dependent.name);
+		{
+			me.dependency = getCardDataFromTarget(e.target);
+			$('#dependency').text(dependency.name);
+			$('#dependant').text('click on the dependent');
+		}
+		else if(me.dependent === null)
+		{
+			me.dependent = getCardDataFromTarget(e.target);
+			$('#dependant').text(me.dependent.name);
 
-					createNewDependency(me.dependency,me.dependent);
-					me.resetDependencyFlow(true);
-					me.dependency = null,me.dependent = null;
-				}
+			if (me.transformer.addDependency(me.dependency, me.dependent)) {
+			    me.transformer.updateAllDirtyDescriptions();
+			    me.invis.restartEdges();
+			    me.resetDependencyFlow();
+            }
+
+		}
 	};
 
 	var addDependencyClicked = function(settings,dataset){
-		this.resetDependencyFlow(true);
+		this.resetDependencyFlow();
 		$('#addDependencyButton').hide();
 		$('#removeDependencyButton').hide();
 

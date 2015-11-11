@@ -98,49 +98,79 @@ InVis.prototype = function()
 				  .start()
 				  .alpha(.1);
 
-		this.nodes = visSettings.svgElement.selectAll(".cardNode")
-			.data(dataset.nodes,function(d){return d.name;});
-		this.nodes.enter()
-			.append("foreignObject")
-			.attr('class','cardNode')
-			.on('mousedown',function(){this.disableZoomAndPan(true);}.bind(this))
-			.html(function(d,i){
-				return me.visSettings.nodeSettings.buildNode(d,i);
-			})
-			.attr({width:'226px',
-				   height:'100%', x: 10, y:10})
-			.call(this.force.drag);
+		this.nodes = visSettings.svgElement.selectAll(".cardNode");
+		this.edges = visSettings.svgElement.selectAll("path");
 
-		this.nodes
-			.exit()
-			.remove();
-
-		Enumerable.From(this.nodes[0]).ForEach(
-			function(d,i){
-				if (d) {
-					d.__data__.foHeight = $(d).contents().height();
-					d.__data__.foWidth = $(d).contents().width();
-				}
-			}
-		);
-
-
-			//Create edges as lines
-		this.edges = visSettings.svgElement.selectAll("path")
-			.data(dataset.edges,function(d){return d.source.name + d.target.name;});
-		this.edges.enter()
-			.append("path")
-			.attr('class','edge')
-			.style("stroke", "#ccc")
-			.style("stroke-width", 1)
-			.style('marker-mid','url(#markerArrow)');
-
-		this.edges
-			.exit()
-			.remove();
-
+		this.nodesChanged();
+		this.edgesChanged();
 		this.sortElements();
 	};
+
+
+	var nodesChanged = function () {
+	    var me = this;
+	    this.nodes = this.nodes.data(this.data.nodes, function (d) { return d.name; });
+	    this.nodes.enter()
+			.append("foreignObject")
+			.attr('class', 'cardNode')
+			.on('mousedown', function () { this.disableZoomAndPan(true); }.bind(this))
+			.html(function (d, i) {
+			    return me.visSettings.nodeSettings.buildNode(d, i);
+			})
+			.attr({
+			    width: '226px',
+			    height: '100%', x: 10, y: 10
+			})
+			.call(this.force.drag);
+
+	    this.nodes
+			.exit()
+			.remove();
+
+	    Enumerable.From(this.nodes[0]).ForEach(
+			function (d, i) {
+			    if (d) {
+			        d.__data__.foHeight = $(d).contents().height();
+			        d.__data__.foWidth = $(d).contents().width();
+			    }
+			}
+		);
+	}
+
+	var edgesChanged = function () {
+	    this.edges = this.edges.data(this.data.edges, function (d) { return d.source.name + d.target.name; });
+	    this.edges.enter()
+			.append("path")
+			.attr('class', 'edge')
+			.style("stroke", "#ccc")
+			.style("stroke-width", 1)
+			.style('marker-mid', 'url(#markerArrow)');
+
+	    this.edges
+			.exit()
+			.remove();
+	    this.force.start();
+	}
+
+	var restartEdges = function () {
+	    this.edgesChanged();
+	    this.sortElements();
+	    this.force.start();
+	}
+
+	var restartNodes = function () {
+	    this.nodesChanged();
+	    this.sortElements();
+	    this.force.start();
+	}
+
+	var restartAll = function () {
+	    this.nodesChanged();
+	    this.edgesChanged();
+	    this.sortElements();
+	    this.force.start();
+	}
+
 
 	var sortElements = function(){
 		// Places the lines behind the nodes
@@ -176,15 +206,25 @@ InVis.prototype = function()
 
 		if(!me.visSettings.layoutSettings.manualLayout) {
 
-			me.nodes.attr("x", function(d) {
-					  return d.x - (d.foWidth / 2); })
-					  .attr("y", function(d) {
-					  return d.y - (d.foHeight / 2); });
+		    //me.links.attr("x1", function (d) { return d.source.x; })
+            //        .attr("y1", function (d) { return d.source.y; })
+            //        .attr("x2", function (d) { return d.target.x; })
+            //        .attr("y2", function (d) { return d.target.y; });
+            //
+		    //me.nodes.attr("cx", function (d) { return d.x; })
+            //        .attr("cy", function (d) { return d.y; });
 
+		    me.nodes.attr("x", function (d) {
+		                return d.x - (d.foWidth / 2);
+		            })
+					.attr("y", function (d) {
+					    return d.y - (d.foHeight / 2);
+					});
+            //
 			// Possibly move this out of the force loop
-			var anchorNode = Enumerable.From(me.nodes.data())
-									   .Where(function(d){return d.nodeType === 'Anchor'})
-									   .SingleOrDefault()
+			//var anchorNode = Enumerable.From(me.nodes.data())
+			//						   .Where(function(d){return d.nodeType === 'Anchor'})
+			//						   .SingleOrDefault()
 
 			// if(anchorNode != undefined)
 			// {
@@ -263,7 +303,12 @@ InVis.prototype = function()
 			buildForce : buildForce,
 			forceTick : forceTick,
 			updateGraph : updateGraph,
-			sortElements : sortElements};
+			sortElements: sortElements,
+			nodesChanged: nodesChanged,
+            edgesChanged: edgesChanged,
+			restartNodes: restartNodes,
+			restartEdges: restartEdges,
+	        restartAll: restartAll};
 
 }();
 
