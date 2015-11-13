@@ -101,13 +101,10 @@ InVis.prototype = function()
 		this.nodes = visSettings.svgElement.selectAll(".cardNode");
 		this.edges = visSettings.svgElement.selectAll("path");
 
-		this.nodesChanged();
-		this.edgesChanged();
-		this.sortElements();
+		this.restartAll();
 	};
 
-
-	var nodesChanged = function () {
+	var restartAll = function () {
 	    var me = this;
 	    this.nodes = this.nodes.data(this.data.nodes, function (d) { return d.name; });
 	    this.nodes.enter()
@@ -135,9 +132,7 @@ InVis.prototype = function()
 			    }
 			}
 		);
-	}
 
-	var edgesChanged = function () {
 	    this.edges = this.edges.data(this.data.edges, function (d) { return d.source.name + d.target.name; });
 	    this.edges.enter()
 			.append("path")
@@ -149,24 +144,7 @@ InVis.prototype = function()
 	    this.edges
 			.exit()
 			.remove();
-	    this.force.start();
-	}
 
-	var restartEdges = function () {
-	    this.edgesChanged();
-	    this.sortElements();
-	    this.force.start();
-	}
-
-	var restartNodes = function () {
-	    this.nodesChanged();
-	    this.sortElements();
-	    this.force.start();
-	}
-
-	var restartAll = function () {
-	    this.nodesChanged();
-	    this.edgesChanged();
 	    this.sortElements();
 	    this.force.start();
 	}
@@ -304,10 +282,6 @@ InVis.prototype = function()
 			forceTick : forceTick,
 			updateGraph : updateGraph,
 			sortElements: sortElements,
-			nodesChanged: nodesChanged,
-            edgesChanged: edgesChanged,
-			restartNodes: restartNodes,
-			restartEdges: restartEdges,
 	        restartAll: restartAll};
 
 }();

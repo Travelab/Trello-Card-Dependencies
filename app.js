@@ -178,13 +178,13 @@ TrelloInvisDepApp.prototype = function(){
 		            var link = dependency.neededFor[0];
 		            if (me.transformer.removeDependency(link.source, link.target)) {
 		                me.transformer.updateAllDirtyDescriptions();
-		                me.invis.restartEdges();
+		                me.invis.restartAll();
 		            }
 		        } else if (dependency.dependsOn.length == 1) {
 		            var link = dependency.dependsOn[0];
 		            if (me.transformer.removeDependency(link.source, link.target)) {
 		                me.transformer.updateAllDirtyDescriptions();
-		                me.invis.restartEdges();
+		                me.invis.restartAll();
 		            }
 		        }
 		        me.resetDependencyFlow();
@@ -203,7 +203,7 @@ TrelloInvisDepApp.prototype = function(){
 		    if (me.transformer.removeDependency(me.dependency, me.dependent)) {
 		        me.transformer.updateAllDirtyDescriptions();
 		        me.resetDependencyFlow();
-		        me.invis.restartEdges();
+		        me.invis.restartAll();
 		    }
 			return;
 		}
@@ -245,7 +245,7 @@ TrelloInvisDepApp.prototype = function(){
 
 			if (me.transformer.addDependency(me.dependency, me.dependent)) {
 			    me.transformer.updateAllDirtyDescriptions();
-			    me.invis.restartEdges();
+			    me.invis.restartAll();
 			    me.resetDependencyFlow();
             }
 
