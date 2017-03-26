@@ -203,12 +203,12 @@ var TrelloDependencyEngine = function()
 				
 				return card;
 			};
-			
+
 			var cardsHtml = Enumerable.From(cards).Select(function(c){return $('<p></p>').append(prepareCard(c)).html();}).ToArray();
-			
+
 			var sheets = Enumerable.From($('head').find('[rel="stylesheet"]')).Select(function(e){return $(e).attr('href');}).ToArray()
-			frame[0].contentWindow.postMessage({type: 'css',links : sheets},chrome.extension.getURL(''));
-			frame[0].contentWindow.postMessage({type: 'cards',cards : cardsHtml},chrome.extension.getURL(''));
+			frame[0].contentWindow.postMessage({type: 'css', links : sheets}, chrome.runtime.getURL(''));
+			frame[0].contentWindow.postMessage({type: 'cards', cards : cardsHtml}, chrome.runtime.getURL(''));
 		}
 	};
 	
@@ -234,8 +234,7 @@ var TrelloDependencyEngine = function()
 
 $(function(){
 
-var engine = new TrelloDependencyEngine();		
-
+var engine = new TrelloDependencyEngine();
 	engine.setupChildCommunication();
 
 	var appLoop = function(){

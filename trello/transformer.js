@@ -359,7 +359,7 @@ TrelloTransformer.prototype = function()
 		buildListOrientatedDataSet: buildListOrientatedDataSet,
 		buildDependencyOrientatedDataSet: buildDependencyOrientatedDataSet,
 		updateAllDirtyDescriptions: updateAllDirtyDescriptions,
-        addDependency: addDependency,
-        removeDependency: removeDependency
+		addDependency: addDependency,
+		removeDependency: removeDependency
 	};
 }();

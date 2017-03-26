@@ -29,6 +29,7 @@ TrelloInvisDepApp.prototype = function(){
 	{
 		var cardApiUrl = this.baseTrelloUrl + this.board +'/cards?fields=name,shortLink,idList,desc' + this.trelloKey + this.trelloToken;
 		var listApiUrl = this.baseTrelloUrl + this.board +'/lists?fields=name,shortLink,idList' + this.trelloKey + this.trelloToken;
+		console.log('Card Api Url: ', cardApiUrl)
 		return $.when($.ajax({url : cardApiUrl}),$.ajax({url : listApiUrl}));
 	};
 
@@ -93,51 +94,37 @@ TrelloInvisDepApp.prototype = function(){
 		}.bind(this));
 	}
 
-	var init = function()
-	{
+	var init = function() {
+		$.when(
+		  this.loadDataFromTrello(),
+      this.setupChildCommunication()
+    ).done((results) => {
+      $('.loadingMessage').hide();
+      const cards = results[0];
+      const lists = results[1];
 
-		$.when(this.loadDataFromTrello(),this.setupChildCommunication())
-		.done(function(results){
+      const markerHtml = '<marker id="markerArrow" markerWidth="30" markerHeight="13" refx="2" refy="7" orient="auto"> <path d="M25,7 L2,13 L8,7 L2,2"></path> </marker>';
+      //var markerHtml = '<marker id="markerArrow" markerWidth="30" markerHeight="30" refX="15" refY="15" orient="auto"> <path d="M30,15 L0,30 L5,15 L2,0"></path> </marker>';
+      //var markerHtml = '<marker id="markerCircle" markerWidth="8" markerHeight="8" refx="5" refy="5">    <circle cx="5" cy="5" r="3" style="stroke: none; fill:#000000;"/></marker>';
 
+      setInterval(() => {
+        const marker = $('#markerArrow');
+        if (marker.length < 0) return;
 
-			$('.loadingMessage').hide();
-			var cards = results[0];
-			var lists = results[1];
+        const endX = 30;
+        const newX = parseInt(marker[0].getAttribute('refX')) - 1;
+        if (newX <= -endX) marker[0].setAttribute('refX', endX - 1);
+      }, 10)
 
-			var dataset = this.transformer.buildDependencyOrientatedDataSet(cards, lists);
+      const data = this.transformer.buildDependencyOrientatedDataSet(cards, lists);
+      this.settings = buildSettings(markerHtml);
+      this.invis = InVis.create(this.settings, data);
 
-			this.invis = new InVis();
-
-			var markerHtml = '<marker id="markerArrow" markerWidth="30" markerHeight="13" refx="2" refy="7" orient="auto"> <path d="M25,7 L2,13 L8,7 L2,2"></path> </marker>';
-			//var markerHtml = '<marker id="markerArrow" markerWidth="30" markerHeight="30" refX="15" refY="15" orient="auto"> <path d="M30,15 L0,30 L5,15 L2,0"></path> </marker>';
-			//var markerHtml = '<marker id="markerCircle" markerWidth="8" markerHeight="8" refx="5" refy="5">    <circle cx="5" cy="5" r="3" style="stroke: none; fill:#000000;"/></marker>';
-
-			setInterval(function(){
-
-				var endX = 30;
-				var ma = $('#markerArrow');
-				if($('#markerArrow').length < 0) {return;}
-
-				var newX = parseInt( ma[0].getAttribute('refX')) - 1;
-				if(newX <= -endX) {newX = endX-1;}
-
-				ma[0].setAttribute('refX',newX);
-			},10);
-
-			this.settings = buildSettings(markerHtml);
-
-			this.invis.create(this.settings,dataset);
-
-			$('#removeDependencyButton').click(function(){this.removeDependencyClick(this.settings,dataset);}.bind(this));
-			$('#addDependencyButton').click(function(){this.addDependencyClicked(this.settings,dataset);}.bind(this));
-			$('#cancelDependencyButton').click(function(){this.resetDependencyFlow();}.bind(this));
-
-			$('#removeAllDependencies').click(function(){this.removeAllDependencies(this.settings,dataset);}.bind(this));
-
-
-			}.bind(this));
-
-
+      $('#removeDependencyButton').on('click', () => this.removeDependencyClick(this.settings, data));
+      $('#addDependencyButton').on('click', () => this.addDependencyClicked(this.settings, data));
+      $('#cancelDependencyButton').on('click', () => this.resetDependencyFlow());
+      $('#removeAllDependencies').on('click', () => this.removeAllDependencies(this.settings, data));
+    });
 	};
 
 	var resetDependencyFlow = function (){
@@ -287,8 +274,7 @@ TrelloInvisDepApp.prototype = function(){
 										//.attr('viewBox','0 0 1920 1024')
 										//.attr('perserveAspectRatio','xMinYMid');
 
-				settings.svgElement.append('defs')
-								   .html(markerHtml);
+				settings.svgElement.append('defs').html(markerHtml);
 
 				settings.svgHeight = $(document).height();
 				settings.svgWidth = $(document).width();
@@ -310,16 +296,8 @@ TrelloInvisDepApp.prototype = function(){
 					}
 				};
 
-
-				var buildTemplate = function(templateName){
-					var template = $('#templates #'+templateName+' > div').clone();
-					return template;
-				};
-
-				var convertTemplateToHtml = function(t){
-					return $('<p><p/>').append(t).html();
-				}
-
+				const buildTemplate = (templateName) => $(`#templates #${templateName} > div`).clone();
+				const convertTemplateToHtml = (temp) => $('<p></p>').append(temp).html()
 				settings.nodeSettings.buildNode = function(d){
 				if(d.nodeType == 'Card')
 				{
@@ -389,15 +367,6 @@ TrelloInvisDepApp.prototype = function(){
 	};
 }();
 
-var _gaq = _gaq || [];
-_gaq.push(['_setAccount', 'UA-46145442-5']);
-_gaq.push(['_trackPageview']);
-
-(function() {
-  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-  ga.src = 'https://ssl.google-analytics.com/ga.js';
-  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-})();
-
 var app = new TrelloInvisDepApp();
 app.init();
+

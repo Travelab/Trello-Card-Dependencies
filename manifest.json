@@ -3,7 +3,7 @@
 
   "name": "Trello Card Dependencies",
   "description": "Allows you to add and visualise dependencies on cards",
-  "version": "1.6",
+  "version": "1.7",
 
   "permissions": [
 	"http://trello.com/b*",
@@ -11,26 +11,26 @@
 	"tabs",
 	"storage"
   ],
+
   "web_accessible_resources": [
-  "index.html",
-  "icon.png",
-  "inline.plugin.js",
-  "https://ssl.google-analytics.com/ga.js"
+    "index.html",
+    "icon.png",
+    "inline.plugin.js"
   ],
-  "content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
+
   "content_scripts": [
     {
       "matches": ["https://trello.com/*"],
       "js": [
-			 "lib/jquery.js",
-			 "lib/inline.plugin.js",
-			 "lib/d3.v3.js",
-			 "lib/linq.js",
-			 "trello/transformer.js",
-			 "inVis.js",			 
-			 "trello/TrelloDepView.js",
-			 "trello/client.js"
-			 ]
+        "lib/jquery.js",
+        "lib/inline.plugin.js",
+        "lib/d3.v3.js",
+        "lib/linq.js",
+        "trello/transformer.js",
+        "inVis.js",
+        "trello/TrelloDepView.js",
+        "trello/client.js"
+      ]
     }
   ]
 }
