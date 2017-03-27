@@ -100,7 +100,7 @@ const InVis = {
       .attr('class', 'edge')
       .style("stroke", "#ccc")
       .style("stroke-width", 1)
-      .style('marker-mid', 'url(#markerArrow)');
+      .style('marker-end', 'url(#markerArrow)');
 
     this.edges
       .exit()
@@ -136,30 +136,31 @@ const InVis = {
         .attr("x", node => node.x - (node.foWidth / 2))
         .attr("y", node => node.y - (node.foHeight / 2))
     } else {
-      this.data.nodes
-        .each((node, index) => {
-          node.y = 0;
-          node.x = 110 * index;
-        });
-      this.visSettings.layoutSettings.manualLayout = false;
+      // Unused
+      // this.data.nodes
+      //   .each((node, index) => {
+      //     node.y = 0;
+      //     node.x = 110 * index;
+      //   });
+      // this.visSettings.layoutSettings.manualLayout = false;
     }
 
     this.visSettings.svgElement
       .selectAll("path")
       .data(this.data.edges)
-      .attr('d', (node) => {
-        const x1 = node.source.x;
-        const y1 = node.source.y;
+      .attr('d', (edge) => {
+        const x1 = edge.source.x;
+        const y1 = edge.source.y;
 
-        const x2 = node.target.x;
-        const y2 = node.target.y;
+        const x2 = edge.target.x;
+        const y2 = edge.target.y;
 
         const targetVector = {
           x: x2 - x1,
           y: y2 - y1
         };
 
-        return 'M ' + x1 + ' ' + y1 + this.generatePoints(5, targetVector);
+        return `M ${x1} ${y1} ${this.generatePoints(2, targetVector)}`
       });
   },
 

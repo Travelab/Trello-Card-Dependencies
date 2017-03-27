@@ -8,16 +8,7 @@ var TrelloInvisDepApp = function(){
 
 	this.board = 'boards/' + this.boardShortlink;
 
-	this.nodeW = 100;
-	this.nodeH = 100;
-
-	this.w = 800;
-	this.h = 600;
-
 	this.transformer = new TrelloTransformer();
-
-	//Bad
-	cssClone = false;
 
 	this.dependent = null,
 	this.dependency = null;
@@ -25,73 +16,67 @@ var TrelloInvisDepApp = function(){
 
 TrelloInvisDepApp.prototype = function(){
 
-	var loadDataFromTrello = function()
-	{
-		var cardApiUrl = this.baseTrelloUrl + this.board +'/cards?fields=name,shortLink,idList,desc' + this.trelloKey + this.trelloToken;
-		var listApiUrl = this.baseTrelloUrl + this.board +'/lists?fields=name,shortLink,idList' + this.trelloKey + this.trelloToken;
-		console.log('Card Api Url: ', cardApiUrl)
-		return $.when($.ajax({url : cardApiUrl}),$.ajax({url : listApiUrl}));
+	var loadDataFromTrello = function() {
+    const cardApiUrl =
+      this.baseTrelloUrl +
+      this.board + '/cards?fields=name,shortLink,idList,desc' +
+      this.trelloKey +
+      this.trelloToken;
+
+    const listApiUrl =
+      this.baseTrelloUrl +
+      this.board + '/lists?fields=name,shortLink,idList' +
+      this.trelloKey +
+      this.trelloToken;
+
+    return $.when($.ajax({url : cardApiUrl}),$.ajax({url : listApiUrl}));
 	};
 
-	var setupChildCommunication = function()
-	{
-			// Create IE + others compatible event handler
-			var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
-			var eventer = window[eventMethod];
-			var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
+  var setupChildCommunication = function() {
+    // Create IE + others compatible event handler
+    const eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
+    const listen = window[eventMethod];
+    const messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
+    const promise = new $.Deferred();
 
-			var promise = new $.Deferred();
+    // Listen to message from child window
+    listen(messageEvent, (event) => {
+      if(event.data.type) {
+        switch(event.data.type) {
+          case 'css':
+            Array.from(event.data.links)
+              .forEach((link) => $('#customStyle').before(`<link rel="stylesheet" href="${link}" />`));
+            break;
 
-			// Listen to message from child window
-			eventer(messageEvent,function(e) {
+          case 'cards':
+            //BAD !
+            cardViews = $(`<p></p>`)
+            Array.from(event.data.cards)
+              .forEach((card) => {
+                cardViews.append(card);
+              });
+            promise.resolve();
+            break;
 
-				if(e.data.type !== undefined)
-				{
-					switch(e.data.type)
-					{
-						case 'css':
-						{
-						if(cssClone === true) {break;}
+          case 'dependencyAdded':
+          case 'dependencyRemoved':
+            this.updateDataFromTrello();
+            break;
+        }
+      }
 
-							var links = (e.data.links);
-							Enumerable.From(links)
-									  .ForEach(function(e){
-													$('#customStyle').before('<link rel="stylesheet" href="'+ e +'" />');
-												});
-							cssClone = true;
-						}break;
+    }, false);
 
-						case 'cards':
-						{
-						  //BAD !
-						  cardViews = $('<p></p>');
-						  Enumerable.From(e.data.cards).ForEach(function(c){
-							cardViews.append($(c));
-						  });
-						  promise.resolve();
-						}break;
-
-						case 'dependencyAdded':
-						case 'dependencyRemoved':
-						{
-							this.updateDataFromTrello();
-						}break;
-					}
-				}
-
-			}.bind(this),false);
-		return promise;
-	};
-
+    return promise;
+  };
 
 	var updateDataFromTrello = function()
 	{
-		this.loadDataFromTrello().done(function(cardResult,listResult){
-			var cards = cardResult;
-			var lists = listResult;
-			var dataset = this.transformer.buildDependencyOrientatedDataSet(cards, lists);
-			this.invis.updateGraph(this.settings,dataset);
-		}.bind(this));
+		this.loadDataFromTrello()
+      .done((cards, lists) => {
+        const data = this.transformer.buildDependencyOrientatedDataSet(cards, lists);
+        this.invis.updateGraph(this.settings,data);
+		  });
 	}
 
 	var init = function() {
@@ -103,19 +88,7 @@ TrelloInvisDepApp.prototype = function(){
       const cards = results[0];
       const lists = results[1];
 
-      const markerHtml = '<marker id="markerArrow" markerWidth="30" markerHeight="13" refx="2" refy="7" orient="auto"> <path d="M25,7 L2,13 L8,7 L2,2"></path> </marker>';
-      //var markerHtml = '<marker id="markerArrow" markerWidth="30" markerHeight="30" refX="15" refY="15" orient="auto"> <path d="M30,15 L0,30 L5,15 L2,0"></path> </marker>';
-      //var markerHtml = '<marker id="markerCircle" markerWidth="8" markerHeight="8" refx="5" refy="5">    <circle cx="5" cy="5" r="3" style="stroke: none; fill:#000000;"/></marker>';
-
-      setInterval(() => {
-        const marker = $('#markerArrow');
-        if (marker.length < 0) return;
-
-        const endX = 30;
-        const newX = parseInt(marker[0].getAttribute('refX')) - 1;
-        if (newX <= -endX) marker[0].setAttribute('refX', endX - 1);
-      }, 10)
-
+      const markerHtml = '<marker id="markerArrow" markerWidth="30" markerHeight="13" refX="2" refY="7" orient="auto"> <path d="M25,7 L2,13 L8,7 L2,2"></path> </marker>';
       const data = this.transformer.buildDependencyOrientatedDataSet(cards, lists);
       this.settings = buildSettings(markerHtml);
       this.invis = InVis.create(this.settings, data);
@@ -269,89 +242,83 @@ TrelloInvisDepApp.prototype = function(){
 	//var updateLinksBasedOn
 
 	var buildSettings = function(markerHtml){
-		var settings = new VisSettings();
-				settings.svgElement = d3.select("body").append("svg");
+		const settings = new VisSettings();
 										//.attr('viewBox','0 0 1920 1024')
 										//.attr('perserveAspectRatio','xMinYMid');
 
-				settings.svgElement.append('defs').html(markerHtml);
+    settings.svgElement = d3.select("body").append("svg");
+    settings.svgElement.append('defs').html(markerHtml);
 
-				settings.svgHeight = $(document).height();
-				settings.svgWidth = $(document).width();
+    settings.svgHeight = $(document).height();
+    settings.svgWidth = $(document).width();
 
-				settings.forceSettings.linkDistance = function(d,i){
-					switch(d.source.nodeType)
-					{
-						case 'Card':{
-							return 150;
-						break;}
+    settings.forceSettings.linkDistance = function(d,i){
+      switch(d.source.nodeType)
+      {
+        case 'Card':{
+          return 150;
+          break;}
 
-						case 'List':{
-							return 100;
-						break;}
+        case 'List':{
+          return 100;
+          break;}
 
-						case 'Anchor':{
-							return 180;
-						break;}
-					}
-				};
+        case 'Anchor':{
+          return 180;
+          break;}
+      }
+    };
 
-				const buildTemplate = (templateName) => $(`#templates #${templateName} > div`).clone();
-				const convertTemplateToHtml = (temp) => $('<p></p>').append(temp).html()
-				settings.nodeSettings.buildNode = function(d){
-				if(d.nodeType == 'Card')
-				{
+    const buildTemplate = (templateName) => $(`#templates #${templateName} > div`).clone();
+    const convertTemplateToHtml = (temp) => $('<p></p>').append(temp).html()
+    settings.nodeSettings.buildNode = function(d){
+      if(d.nodeType == 'Card')
+      {
 
-					var findCard = function(name){
-						return cardViews.find(".list-card").filter(":has(a:contains('"+name+"'))");
-					}
+        var findCard = function(name){
+          return cardViews.find(".list-card").filter(":has(a:contains('"+name+"'))");
+        }
 
-					//Find in parent
-					var card = findCard(d.name);
-					if(card.length === 0)
-					{
-						var storyPointsMatch = d.name.match(/(\(|\[).+(\)|\])(.+)/);
-						if(storyPointsMatch !== null)
-						{
-							var nameWithoutStoryPoints = storyPointsMatch[3];
-							card = findCard(nameWithoutStoryPoints);
-						}
-						else
-						{
-							storyPointsMatch = d.name.match(/(.+)\W\(\?\)/)
-							if(storyPointsMatch !== null)
-							{
-								nameWithoutStoryPoints = storyPointsMatch[1]
-								card = findCard(nameWithoutStoryPoints);
-							}
-						}
-					}
+        //Find in parent
+        var card = findCard(d.name);
+        if(card.length === 0)
+        {
+          var storyPointsMatch = d.name.match(/(\(|\[).+(\)|\])(.+)/);
+          if(storyPointsMatch !== null)
+          {
+            var nameWithoutStoryPoints = storyPointsMatch[3];
+            card = findCard(nameWithoutStoryPoints);
+          }
+          else
+          {
+            storyPointsMatch = d.name.match(/(.+)\W\(\?\)/)
+            if(storyPointsMatch !== null)
+            {
+              nameWithoutStoryPoints = storyPointsMatch[1]
+              card = findCard(nameWithoutStoryPoints);
+            }
+          }
+        }
 
-					card.addClass(d.state);
+        card.addClass(d.state);
 
-					//return convertTemplateToHtml($template);
-					return convertTemplateToHtml(card[0].outerHTML);
+        //return convertTemplateToHtml($template);
+        return convertTemplateToHtml(card[0].outerHTML);
 
-				}
+      }
 
-				if(d.nodeType == 'List')
-				{
-					var template = buildTemplate('listTemplate');
-					template.find('.name').text(d.name);
-					return convertTemplateToHtml(template);
-				}
+      const factoryTemplate = (type) => {
+        const template = buildTemplate(type);
+        template.find('.name').text(d.name);
+        return convertTemplateToHtml(template);
+      }
 
-				if(d.nodeType == 'Anchor')
-				{
-					var template = buildTemplate('anchorTemplate');
-					template.find('.name').text(d.name);
-					return convertTemplateToHtml(template);
-				}
+      if(d.nodeType == 'List') return factoryTemplate('listTemplate')
+      if(d.nodeType == 'Anchor') return factoryTemplate('anchorTemplate')
+    };
 
-
-				};
-		return settings;
-	};
+    return settings;
+  };
 
 	return {
 		init:init,
